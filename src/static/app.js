@@ -22,7 +22,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Create participants list HTML
         const participantsList = details.participants.length > 0
-          ? `<ul class="participants-list">${details.participants.map(participant => `<li>${participant}</li>`).join('')}</ul>`
+          ? `<ul class="participants-list">${details.participants.map(participant => 
+              `<li class="participant-item">
+                <span class="participant-email">${participant}</span>
+                <button class="delete-btn" onclick="removeParticipant('${name}', '${participant}')">Remove</button>
+              </li>`
+            ).join('')}</ul>`
           : '<p class="no-participants">No participants yet</p>';
 
         activityCard.innerHTML = `
@@ -49,6 +54,50 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error("Error fetching activities:", error);
     }
   }
+
+  // Function to remove a participant from an activity
+  async function removeParticipant(activityName, email) {
+    if (!confirm(`Are you sure you want to remove ${email} from ${activityName}?`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `/activities/${encodeURIComponent(activityName)}/participants/${encodeURIComponent(email)}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      const result = await response.json();
+
+      if (response.ok) {
+        messageDiv.textContent = result.message;
+        messageDiv.className = "success";
+        
+        // Refresh activities to show updated participants
+        fetchActivities();
+      } else {
+        messageDiv.textContent = result.detail || "An error occurred";
+        messageDiv.className = "error";
+      }
+
+      messageDiv.classList.remove("hidden");
+
+      // Hide message after 5 seconds
+      setTimeout(() => {
+        messageDiv.classList.add("hidden");
+      }, 5000);
+    } catch (error) {
+      messageDiv.textContent = "Failed to remove participant. Please try again.";
+      messageDiv.className = "error";
+      messageDiv.classList.remove("hidden");
+      console.error("Error removing participant:", error);
+    }
+  }
+
+  // Make removeParticipant function globally available
+  window.removeParticipant = removeParticipant;
 
   // Handle form submission
   signupForm.addEventListener("submit", async (event) => {
